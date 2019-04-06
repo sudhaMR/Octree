@@ -62,14 +62,17 @@ private:
 		void SetParent();
 
 	UFUNCTION(BlueprintCallable, Category = "BoundingBox")
-		void init(FVector const origin, FVector const extent, int const depth, FColor c, AOctTree *rootNode, AOctTree *parentNode, TArray<FVector> objectPosList);
+		void init(FVector const origin, FVector const extent, int const depth, FColor c, AOctTree *rootNode, AOctTree *parentNode, TArray<FVector> remainingObjPostList);
 
 	UFUNCTION(BlueprintCallable, Category = "BoundingBox")
 	void DrawNode(FColor color, FVector origin, FVector extent);
 
 	void BuildTree();
-
+	
 	bool ObjectInNodeRange(FVector object, Node octNode);
+
+	UFUNCTION()
+		void CollectExistingObjects();
 
 	UFUNCTION()
 	void SpawnOctree(FVector spawnLocation, FVector spawnExtent, int depth, FColor c);

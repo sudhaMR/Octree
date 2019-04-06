@@ -21,6 +21,8 @@ public:
 	UPROPERTY(EditAnywhere, Category = StaticMeshComponents)
 		UStaticMeshComponent* objectMeshComponent;
 
+	FVector scenePos;
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
