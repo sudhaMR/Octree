@@ -25,6 +25,8 @@ public:
 	Node boundingBox;
 	TArray<AOctTree*> children;
 
+	bool isPaused;
+
 	void PrintNodeData();
 	void PrintNode();
 
@@ -67,12 +69,16 @@ private:
 	UFUNCTION(BlueprintCallable, Category = "BoundingBox")
 	void DrawNode(FColor color, FVector origin, FVector extent);
 
+	UFUNCTION()
 	void BuildTree();
 	
 	bool ObjectInNodeRange(FVector object, Node octNode);
 
 	UFUNCTION()
 		void CollectExistingObjects();
+
+	UFUNCTION()
+		void DelayFunction();
 
 	UFUNCTION()
 	void SpawnOctree(FVector spawnLocation, FVector spawnExtent, int depth, FColor c);

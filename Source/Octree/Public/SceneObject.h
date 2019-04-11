@@ -23,6 +23,9 @@ public:
 
 	FVector scenePos;
 
+	UFUNCTION()
+		void DestroyActor();
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;

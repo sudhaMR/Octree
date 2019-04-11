@@ -14,6 +14,7 @@ AOctTree::AOctTree()
 	minNodeSize = 1;
 	maxObjects = 3;
 	maxNodeSize = boundingBox.extent.X;
+	isPaused = false;
 }
 
 void AOctTree::SpawnOctree(FVector spawnLocation, FVector spawnExtent, int depth, FColor c)
@@ -21,10 +22,6 @@ void AOctTree::SpawnOctree(FVector spawnLocation, FVector spawnExtent, int depth
 	FRotator Rotation(0.0f, 0.0f, 0.0f);
 	FActorSpawnParameters SpawnInfo;
 
-	/*UE_LOG(LogTemp, Warning, TEXT("Spawn origin: %f , %f , %f"), spawnLocation.X, spawnLocation.Y, spawnLocation.Z);
-
-	UE_LOG(LogTemp, Warning, TEXT("Spawn extent: %f , %f , %f"), spawnExtent.X, spawnExtent.Y, spawnExtent.Z);
-*/
 	AOctTree *newTree = GetWorld()->SpawnActor<AOctTree>(spawnLocation, Rotation, SpawnInfo);
 
 	newTree->init(spawnLocation, spawnExtent, depth, c, root, this, objectPosList);
@@ -42,16 +39,13 @@ void AOctTree::init(FVector const origin, FVector const extent, int const depth,
 	root = rootNode;
 	parent = parentNode;
 	maxObjects = 3;
+	isPaused = false;
 	Node currentNode;
 
 	while(remainingObjPostList.Num() > 0)
 	{
 		objectPosList.Push(remainingObjPostList.Pop(true));
 	}
-
-	UE_LOG(LogTemp, Warning, TEXT("Init origin: %f , %f , %f"), origin.X, origin.Y, origin.Z);
-
-	UE_LOG(LogTemp, Warning, TEXT("Init extent: %f , %f , %f"), extent.X, extent.Y, extent.Z);
 
 	currentNode.origin = origin;
 	currentNode.extent = extent;
@@ -67,21 +61,46 @@ void AOctTree::DrawNode(FColor color, FVector origin, FVector extent)
 	//	BuildTree();
 	InsertObjects();
 }
+
+void AOctTree::DelayFunction()
+{
+	isPaused = true;
+	UE_LOG(LogTemp, Warning, TEXT("resumed"));
+}
 	
 void AOctTree::InsertObjects()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Objects left: %d "), objectPosList.Num());
+
+	FTimerHandle UnusedHandle;
+	FTimerDelegate TimerDelegate;
+	//TimerDelegate.BindUFunction(this, FName("DelayFunction"));
+
 	if (objectPosList.Num() > 0) //&& boundingBox.extent.X > 100.0f)
 	{
 		while (objectPosList.Num() > 0)
 		{
+			//bool isPaused = false;
+			//GetWorld()->GetTimerManager().SetTimer(UnusedHandle, [this]() {}, 2.0f, false, 2.0f);
 			FVector obj = objectPosList.Pop();
 			if (ObjectInNodeRange(obj, this->boundingBox))
 			{
 				if (nodeObjects.Num() > maxObjects)
 				{
 					objectPosList.Push(obj);
+
+					//Attempt to add delay function
+					/*GetWorld()->GetTimerManager().SetTimer(UnusedHandle, this, &AOctTree::DelayFunction, 2.0f, false);
+
+					while (!isPaused)
+					{
+						GetWorld()->GetTimerManager().SetTimer(UnusedHandle, this, &AOctTree::DelayFunction, 1.0f, false);
+						UE_LOG(LogTemp, Warning, TEXT("bool:  %d"),isPaused);
+					}*/
+
 					BuildTree();
+
+					//isPaused = false;
 					objectPosList.Pop();
 				}
 				else
@@ -107,10 +126,7 @@ void AOctTree::SpawnObject(FVector objLocation)
 
 	//Store objects in the current node
 	nodeObjects.Push(newObject);
-
-	//UE_LOG(LogTemp, Warning, TEXT("Pushed, node size: %d"), nodeObjects.Num());
 }
-
 
 void AOctTree::SetBoundingBox(FVector origin, FVector extent, int depth)
 {
@@ -172,22 +188,10 @@ void AOctTree::Tick(float DeltaTime)
 void AOctTree::GenerateSceneObject()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Generating scene objects"));
-	/*
-	objectPosList.Push(FVector(-511, -500, -480));
-
-	objectPosList.Push(FVector(511, 500, 480));
-
-	objectPosList.Push(FVector(-511, 500, 480));
-
-	objectPosList.Push(FVector(511, 500, -480));
-
-	objectPosList.Push(FVector(511, 500, -480));
-
-	*/
 
 	objectPosList.Push(FVector(1025, 1025, 1025));
 
-	for (int i = 0; i < 50; ++i)
+	for (int i = 0; i < 30; ++i)
 	{
 		FVector v = FVector(FMath::RandRange(-1024.0f, 1024.0f), FMath::RandRange(-1024.0f, 1024.0f), FMath::RandRange(-1024.0f, 1024.0f));
 
@@ -210,14 +214,6 @@ int FindMax(const int &a, const int &b)
 bool AOctTree::ObjectInNodeRange(FVector object, Node octNode)
 {
 	
-//	UE_LOG(LogTemp, Warning, TEXT("Object node: %f , %f , %f"), object.X, object.Y, object.Z);
-
-	/*UE_LOG(LogTemp, Warning, TEXT("OctNode origin: %f , %f , %f"), octNode.origin.X, octNode.origin.Y, octNode.origin.Z);
-
-	UE_LOG(LogTemp, Warning, TEXT("OctNode extent range: %f to %f, %f to %f , %f to %f"), octNode.origin.X - octNode.extent.X, octNode.origin.X + octNode.extent.X,
-	octNode.origin.Y - octNode.extent.Y, octNode.origin.Y + octNode.extent.Y,
-	octNode.origin.Z - octNode.extent.Z, octNode.origin.Z + octNode.extent.Z);*/
-
 	float nodeMinX = FindMin(octNode.origin.X - octNode.extent.X, octNode.origin.X + octNode.extent.X);
 	float nodeMaxX = FindMax(octNode.origin.X - octNode.extent.X, octNode.origin.X + octNode.extent.X);
 
@@ -227,12 +223,6 @@ bool AOctTree::ObjectInNodeRange(FVector object, Node octNode)
 	float nodeMinZ = FindMin(octNode.origin.Z - octNode.extent.Z, octNode.origin.Z + octNode.extent.Z);
 	float nodeMaxZ = FindMax(octNode.origin.Z - octNode.extent.Z, octNode.origin.Z + octNode.extent.Z);
 
-	/*UE_LOG(LogTemp, Warning, TEXT("OctNode origin x min: %f , max %f"), nodeMinX, nodeMaxX);
-
-	UE_LOG(LogTemp, Warning, TEXT("OctNode origin y min: %f , max %f"), nodeMinY, nodeMaxY);
-
-	UE_LOG(LogTemp, Warning, TEXT("OctNode origin z min: %f , max %f"), nodeMinZ, nodeMaxZ);
-	*/
 	if( (object.X >= nodeMinX && object.X < nodeMaxX)
 		&& (object.Y >= nodeMinY && object.Y < nodeMaxY)
 		&& (object.Z >= nodeMinZ && object.Z < nodeMaxZ))
@@ -247,8 +237,10 @@ void AOctTree::CollectExistingObjects()
 		objectPosList.Push(nodeObjects[nodeObjects.Num()-1]->scenePos);
 
 		//Remove object from scene
-		nodeObjects.Pop()->Destroy();
-		//nodeObjects.Pop(true);
+		ASceneObject* a = nodeObjects.Pop(true);
+
+		//a->DrawDebugComponents();
+		a->DestroyActor();
 }
 
 void AOctTree::BuildTree()
@@ -272,22 +264,18 @@ void AOctTree::BuildTree()
 		{
 			FTimerHandle UnusedHandle;
 			FTimerDelegate TimerDelegate;
-			/*UE_LOG(LogTemp, Warning, TEXT("node obj size: %d"),nodeObjects.Num());
-			TimerDelegate.BindUFunction(this, FName("CollectExistingObjects"));
-			GetWorldTimerManager().SetTimer(UnusedHandle, TimerDelegate, 1.0f, false);*/
 			CollectExistingObjects();
 		}
 
-		UE_LOG(LogTemp, Warning, TEXT("Building tree"));
 
+		//return;
+
+		UE_LOG(LogTemp, Warning, TEXT("Building tree"));
 
 		//Top Left back : -x,-y, +z
 		octNodes[0].origin = FVector(boundingBox.origin.X - center.X, boundingBox.origin.Y - center.Y,
 			boundingBox.origin.Z + center.Z);
 		octNodes[0].extent = boundingBox.extent / 2;
-
-		//DrawDebugBox(world, octNodes[0].origin, octNodes[0].extent, color, true, 120, (uint8)'\000', 20);
-		//UE_LOG(LogTemp, Warning, TEXT("1 box: %f , %f , %f"), octNodes[0].origin.X, octNodes[0].origin.Y, octNodes[0].origin.Z);
 
 		//Top right back: +x,-y,+z
 		octNodes[1].origin = FVector(boundingBox.origin.X + center.X, boundingBox.origin.Y - center.Y,
@@ -303,84 +291,38 @@ void AOctTree::BuildTree()
 			boundingBox.origin.Z + center.Z);
 		octNodes[2].extent = boundingBox.extent / 2;
 
-		//DrawDebugBox(world, octNodes[2].origin, octNodes[2].extent, color, true, 120, (uint8)'\000', 20);
-		//UE_LOG(LogTemp, Warning, TEXT("3 box: %f , %f , %f"), octNodes[2].origin.X, octNodes[2].origin.Y, octNodes[2].origin.Z);
-
-
 		//Top right front: +x,+y,+z
 		octNodes[3].origin = FVector(boundingBox.origin.X + center.X, boundingBox.origin.Y + center.Y,
 			boundingBox.origin.Z + center.Z);
 		octNodes[3].extent = boundingBox.extent / 2;
-
-		//DrawDebugBox(world, octNodes[3].origin, octNodes[3].extent, color, true, 120, (uint8)'\000', 20);
-		//UE_LOG(LogTemp, Warning, TEXT("4 box: %f , %f , %f"), octNodes[3].origin.X, octNodes[3].origin.Y, octNodes[3].origin.Z);
-
 
 		//Bottom Left back: -x,-y,-z
 		octNodes[4].origin = FVector(boundingBox.origin.X - center.X, boundingBox.origin.Y - center.Y,
 			boundingBox.origin.Z - center.Z);
 		octNodes[4].extent = boundingBox.extent / 2;
 
-		//DrawDebugBox(world, octNodes[4].origin, octNodes[4].extent, color, true, 120, (uint8)'\000', 20);
-		//UE_LOG(LogTemp, Warning, TEXT("5 box: %f , %f , %f"), octNodes[4].origin.X, octNodes[4].origin.Y, octNodes[4].origin.Z);
-
-
 		//Bottom right back: +x,-y,-z
 		octNodes[5].origin = FVector(boundingBox.origin.X + center.X, boundingBox.origin.Y - center.Y,
 			boundingBox.origin.Z - center.Z);
 		octNodes[5].extent = boundingBox.extent / 2;
-
-		//DrawDebugBox(world, octNodes[5].origin, octNodes[5].extent, color, true, 120, (uint8)'\000',20);
-		//UE_LOG(LogTemp, Warning, TEXT("6 box: %f , %f , %f"), octNodes[5].origin.X, octNodes[5].origin.Y, octNodes[5].origin.Z);
 
 		//Bottom Left front: -x,+y,-z
 		octNodes[6].origin = FVector(boundingBox.origin.X - center.X, boundingBox.origin.Y + center.Y,
 			boundingBox.origin.Z - center.Z);
 		octNodes[6].extent = boundingBox.extent / 2;
 
-		//DrawDebugBox(world, octNodes[6].origin, octNodes[6].extent, color, true, 120, (uint8)'\000', 20);
-		//UE_LOG(LogTemp, Warning, TEXT("7 box: %f , %f , %f"), octNodes[6].origin.X, octNodes[6].origin.Y, octNodes[6].origin.Z);
-
 		//Bottom right front: +x,+y,-z
 		octNodes[7].origin = FVector(boundingBox.origin.X + center.X, boundingBox.origin.Y + center.Y,
 			boundingBox.origin.Z - center.Z);
 		octNodes[7].extent = boundingBox.extent / 2;
 
-		//DrawDebugBox(world, octNodes[7].origin, octNodes[7].extent, color, true, 120, (uint8)'\000', 20);
-		//UE_LOG(LogTemp, Warning, TEXT("8 box: %f , %f , %f"), octNodes[7].origin.X, octNodes[7].origin.Y, octNodes[7].origin.Z);
-
 		int newDepth = boundingBox.depth + int(1);
+		for (int i = 0; i < 8; ++i)
+		{
+			FTimerHandle UnusedHandle;
+			FTimerDelegate TimerDelegate;
+			color = FColor(FMath::RandRange(0, 255), FMath::RandRange(0, 255), FMath::RandRange(0, 255));
+			SpawnOctree(octNodes[i].origin, octNodes[i].extent, newDepth, color);
 
-		/*for (int j = 0; j < objectPosList.Num(); ++j)
-		{*/		
-			for (int i = 0; i < 8; ++i)
-			{
-				//if (objectPosList.Num() > 0)
-					//if(ObjectInNodeRange(objectPosList[j], octNodes[i]))
-					{
-						//UE_LOG(LogTemp, Warning, TEXT("In region"));
-						FVector Location(octNodes[i].origin);
-						FRotator Rotation(0.0f, 0.0f, 0.0f);
-						FActorSpawnParameters SpawnInfo;
-						FTimerHandle UnusedHandle;
-						FTimerDelegate TimerDelegate;
-
-						/*UE_LOG(LogTemp, Warning, TEXT("OctNode origin: %f , %f , %f"), octNodes[i].origin.X, octNodes[i].origin.Y, octNodes[i].origin.Z);
-
-						UE_LOG(LogTemp, Warning, TEXT("OctNode extent: %f , %f , %f"), octNodes[i].extent.X, octNodes[i].extent.Y, octNodes[i].extent.Z);
-
-						UE_LOG(LogTemp, Warning, TEXT("Object node: %f , %f , %f"), objectPosList[j].X, objectPosList[j].Y, objectPosList[j].Z);*/
-
-						color = FColor(FMath::RandRange(0, 255), FMath::RandRange(0, 255),
-							FMath::RandRange(0, 255));
-
-						/*TimerDelegate.BindUFunction(this, FName("SpawnOctree"),
-							octNodes[i].origin, octNodes[i].extent, newDepth, color);
-						GetWorldTimerManager().SetTimer(UnusedHandle, TimerDelegate, 2.0f, false);*/
-						SpawnOctree(octNodes[i].origin, octNodes[i].extent, newDepth, color);
-						
-					}
-			}
-		//}
-
+		}
 }

@@ -2,12 +2,13 @@
 
 #include "SceneObject.h"
 #include "Runtime/CoreUObject/Public/UObject/ConstructorHelpers.h"
+#include "Engine/World.h"
 
 // Sets default values
 ASceneObject::ASceneObject()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 
 	//Create a static mesh component
 	objectMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StaticMeshComponent"));
@@ -39,5 +40,20 @@ void ASceneObject::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+}
+
+void ASceneObject::DestroyActor()
+{
+	this->Destroy();
+	GetWorld()->ForceGarbageCollection(true);
+	/*
+	while (IsPendingKill())
+	{
+		
+		this->Destroy();
+	}*/
+	//this->FinishDestroy();
+	//GetWorld()->ForceGarbageCollection(true);
+	//UE_LOG(LogTemp, Warning, TEXT("Destroy obj: %f"), this->GetActorLocation().X);
 }
 
